@@ -1,7 +1,7 @@
 drop table if exists temp_input;
 create temp table temp_input as
 select
-'The first floor contains a strontium generator, a strontium-compatible microchip, a plutonium generator, and a plutonium-compatible microchip.
+'The first floor contains a elerium generator, a elerium-compatible microchip, a dilithium generator, a dilithium-compatible microchip, a strontium generator, a strontium-compatible microchip, a plutonium generator, and a plutonium-compatible microchip.
 The second floor contains a thulium generator, a ruthenium generator, a ruthenium-compatible microchip, a curium generator, and a curium-compatible microchip.
 The third floor contains a thulium-compatible microchip.
 The fourth floor contains nothing relevant.'::text as inputs
@@ -306,7 +306,7 @@ where (
     		and blocknumber = d2.blocknumber)
 )t
 group by 1,2
-having sum(num) = 5
+having sum(num) = 7
 )t
 )
 ;
@@ -315,7 +315,7 @@ $$
 language sql
 ;
 
-
+create index tmp_block_indx on all_stats(blocknumber);
 
 select pg_temp.do_everything();
 
@@ -331,26 +331,37 @@ union all
 select pg_temp.do_everything() as blah
 	,iter + 1 as iter
 from doit
-where iter < 100
+where iter < 161
 )
 select * from doit
 ;
 
 
-select blockchain,sum(floor),max(rides)
+select blockchain,blocknumber,sum(floor),max(rides)
 from all_stats
 where next_stepped = 0
---	and rides = 4
-group by 1
+	and elem <> 'elevator'
+-- 	and rides = 5
+group by 1,2
 --having sum(floor) < 25
-order by 2 desc
-having sum(floor) = 44
+order by 3 desc
+having sum(floor) = 60
 
 -- select * from all_stats where blockchain is null;
 --drop table if exists unpruned1;
-create temp table unpruned1 as
+create temp table unpruned2 as
 select *
 from all_stats;
+
+-- create temp table all_stat_temp as
+-- select * from unpruned1
+-- union
+-- select * from all_stats a
+-- where a.blocknumber not in (select blocknumber from unpruned1)
+-- ;
+
+-- drop table all_stats;
+-- create temp table all_stats as select * from all_stat_temp;
 
 --delete from all_stats
 update all_stats set next_stepped = 1
@@ -359,10 +370,16 @@ where blockchain in (
     from(
     select blockchain,sum(floor),max(rides)
     from all_stats
---    where next_stepped = 0
+   where next_stepped = 0
+	and elem <> 'elevator'
     group by 1
     order by 2 desc
         )t
-    where t.sum < 27
+    where t.sum < 45
 --    	and t.max = 5
    )
+;
+
+--part ii 45 is too low
+
+select * from all_stats where blocknumber = 19333;
