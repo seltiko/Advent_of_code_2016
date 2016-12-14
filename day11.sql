@@ -97,10 +97,10 @@ select * from stat
 ;
 
 
-drop table if exists search_stats;
-create temp table search_stats as
-select * from stat
-;
+-- drop table if exists search_stats;
+-- create temp table search_stats as
+-- select * from stat
+-- ;
 
 -- insert into all_stats 
 -- select id
@@ -110,24 +110,24 @@ select * from stat
 -- 	,'test' as blockchain
 -- 	,1 as rides
 -- from stat;
-
---Remove duplicates, mostly...
-delete from all_stats
-where blockchain = 
-(select bad
-from(
-select a.blockchain as bad,a2.blockchain,count(1)
-from all_stats a
-inner join all_stats a2
-	on a2.id = a.id
-	and a.floor = a2.floor
-	and a.blockchain <> a2.blockchain
-	and a.rides > a2.rides
-group by 1,2
-having count(1) = 11
-)t
-)
-;
+-- 
+-- --Remove duplicates, mostly...
+-- delete from all_stats
+-- where blockchain = 
+-- (select bad
+-- from(
+-- select a.blockchain as bad,a2.blockchain,count(1)
+-- from all_stats a
+-- inner join all_stats a2
+-- 	on a2.id = a.id
+-- 	and a.floor = a2.floor
+-- 	and a.blockchain <> a2.blockchain
+-- 	and a.rides > a2.rides
+-- group by 1,2
+-- having count(1) = 11
+-- )t
+-- )
+-- ;
 
 create temp sequence blocknumber start 1;
 
@@ -259,10 +259,6 @@ select pg_temp.mover(direction,elem1,chip_flg1,elem2,chip_flg2)
 from steps t
 ;
 
-
-
-
--- --Remove duplicates, mostly...
 with dedup as(
 select a.floor as chip_floor
     ,a2.floor as gen_floor
@@ -277,6 +273,50 @@ where a.chip_flg = 1
 group by 1,2,3
 )
 delete from all_stats
+where false;
+
+
+$$
+language sql
+;
+
+create index tmp_block_indx on all_stats(blocknumber);
+
+select pg_temp.do_everything();
+
+select * from all_stats;
+--truncate search_stats;
+--insert into search_stats
+-- select * from search_stats;
+
+with recursive doit(blah,iter) as (
+select pg_temp.do_everything() as blah
+	,0 as iter
+union all
+select pg_temp.do_everything() as blah
+	,iter + 1 as iter
+from doit
+where iter < 7
+)
+select * from doit
+;
+
+-- -- --Remove duplicates, mostly...
+with dedup as(
+select a.floor as chip_floor
+    ,a2.floor as gen_floor
+    ,a.blocknumber
+    ,count(1) as num
+from all_stats a
+left join all_stats a2
+    on a2.blocknumber = a.blocknumber
+    and a2.elem = a.elem
+    and (a2.chip_flg = 0)
+where a.chip_flg = 1
+group by 1,2,3
+)
+delete from all_stats
+-- select * from all_stats
 where blocknumber in 
 (select block1
  from(
@@ -310,49 +350,28 @@ having sum(num) = 7
 )t
 )
 ;
-
-$$
-language sql
-;
-
-create index tmp_block_indx on all_stats(blocknumber);
-
-select pg_temp.do_everything();
-
-select * from all_stats;
---truncate search_stats;
---insert into search_stats
-select * from search_stats;
-
-with recursive doit(blah,iter) as (
-select pg_temp.do_everything() as blah
-	,0 as iter
-union all
-select pg_temp.do_everything() as blah
-	,iter + 1 as iter
-from doit
-where iter < 161
-)
-select * from doit
-;
+analyze all_stats;
 
 
-select blockchain,blocknumber,sum(floor),max(rides)
+select blockchain,blocknumber,sum(floor),sum(case when elem = 'elevator' then 0 else floor end),max(rides)
 from all_stats
 where next_stepped = 0
-	and elem <> 'elevator'
--- 	and rides = 5
+-- 	and elem <> 'elevator'
+-- 	and rides = 23
 group by 1,2
 --having sum(floor) < 25
-order by 3 desc
+order by 4 desc
 having sum(floor) = 60
 
 -- select * from all_stats where blockchain is null;
 --drop table if exists unpruned1;
-create temp table unpruned2 as
+create temp table bad as
 select *
 from all_stats;
-
+-- drop table if exists all_stats;
+-- create temp table all_stats as 
+-- -- -- -- select * from upruned2;
+-- select * from jfoster1.santa_holder;
 -- create temp table all_stat_temp as
 -- select * from unpruned1
 -- union
@@ -360,26 +379,30 @@ from all_stats;
 -- where a.blocknumber not in (select blocknumber from unpruned1)
 -- ;
 
+drop table if exists jfoster1.santa_holder;
+create table jfoster1.santa_holder as select * from all_stats;
+-- create table jfoster1.bad_santa_holder as select * from bad;
+
 -- drop table all_stats;
 -- create temp table all_stats as select * from all_stat_temp;
 
---delete from all_stats
-update all_stats set next_stepped = 1
-where blockchain in (
-    select blockchain
-    from(
-    select blockchain,sum(floor),max(rides)
-    from all_stats
-   where next_stepped = 0
-	and elem <> 'elevator'
-    group by 1
-    order by 2 desc
-        )t
-    where t.sum < 45
---    	and t.max = 5
-   )
-;
+-- --delete from all_stats
+-- update all_stats set next_stepped = 1
+-- where blockchain in (
+--     select blockchain
+--     from(
+--     select blockchain,sum(floor),max(rides)
+--     from all_stats
+--    where next_stepped = 0
+-- 	and elem <> 'elevator'
+--     group by 1
+--     order by 2 desc
+--         )t
+--     where t.sum < 45
+-- --    	and t.max = 5
+--    )
+-- ;
 
 --part ii 45 is too low
 
-select * from all_stats where blocknumber = 19333;
+select * from all_stats where blocknumber = 6107;
