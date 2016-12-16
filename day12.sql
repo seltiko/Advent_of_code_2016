@@ -1,4 +1,4 @@
-﻿drop table if exists santa;
+drop table if exists santa;
 create temp table santa as
 select
 'cpy 1 a
@@ -44,7 +44,7 @@ from santa
 )t
 ;
 
-with recursive santa_values (id,inst,a,b,c,d,pos) as (
+with recursive santa_values (id,inst,a,b,c,d,pos,iter) as (
 select id
 	,inst
 	,case 
@@ -73,6 +73,7 @@ select id
 		when inst ~ 'jnz d' and d <>0 then substring(inst,'-?\d+')::int + pos
 		when inst ~ 'jnz \d' then substring(inst,'-?\d+$')::int + pos
 		else pos + 1 end as pos
+	,0 as iter
 from santa_parse
 where pos + 1 = id
 union all
@@ -116,10 +117,12 @@ select sp.id
 		when sp.inst ~ 'jnz d' and sv.d <>0 then substring(sp.inst,'-?\d+')::int + sv.pos
 		when sp.inst ~ 'jnz \d' then substring(sp.inst,'-?\d+$')::int + sv.pos
 		else sv.pos + 1 end as pos
+	,sv.iter + 1 as iter
 from santa_values sv
 inner join santa_parse sp
 	on sp.id = sv.pos + 1
 -- where sv.pos < 23
 )
 select * from santa_values
+where iter = (select max(iter) from santa_values)
 ;
